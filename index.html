@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>IoT Relay Dashboard</title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="logo.jpeg"
+    >
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            font-family:
+                "Segoe UI",
+                Tahoma,
+                Geneva,
+                Verdana,
+                sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    #1e293b 0%,
+                    transparent 35%
+                ),
+
+                radial-gradient(
+                    circle at bottom right,
+                    #111827 0%,
+                    transparent 40%
+                ),
+
+                #020617;
+
+            color: #f8fafc;
+
+            padding: 40px 20px;
+        }
+
+
+        .dashboard {
+
+            width: 100%;
+
+            max-width: 1000px;
+
+            margin: auto;
+        }
+
+
+        /* HEADER */
+
+        .header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            background:
+                rgba(
+                    15,
+                    23,
+                    42,
+                    0.85
+                );
+
+            border:
+                1px solid
+                rgba(
+                    148,
+                    163,
+                    184,
+                    0.15
+                );
+
+            border-radius: 20px;
+
+            padding: 25px 30px;
+
+            margin-bottom: 30px;
+
+            box-shadow:
+                0 20px 50px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.35
+                );
+
+            backdrop-filter: blur(12px);
+        }
+
+
+        .header-left h1 {
+
+            margin: 0;
+
+            font-size: 30px;
+
+            font-weight: 700;
+        }
+
+
+        .header-left p {
+
+            margin: 8px 0 0;
+
+            color: #94a3b8;
+
+            font-size: 14px;
+        }
+
+
+        /* CONNECTION */
+
+        .connection {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            padding: 10px 16px;
+
+            background: #020617;
+
+            border-radius: 50px;
+
+            border:
+                1px solid
+                #1e293b;
+        }
+
+
+        .status-dot {
+
+            width: 11px;
+
+            height: 11px;
+
+            border-radius: 50%;
+
+            background: #ef4444;
+
+            box-shadow:
+                0 0 10px
+                rgba(
+                    239,
+                    68,
+                    68,
+                    0.6
+                );
+        }
+
+
+        .status-dot.connected {
+
+            background: #22c55e;
+
+            box-shadow:
+                0 0 10px
+                rgba(
+                    34,
+                    197,
+                    94,
+                    0.7
+                );
+        }
+
+
+        #status-koneksi {
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            color: #cbd5e1;
+        }
+
+
+        /* GRID */
+
+        .container {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 20px;
+        }
+
+
+        /* CARD */
+
+        .card {
+
+            position: relative;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(
+                        30,
+                        41,
+                        59,
+                        0.95
+                    ),
+                    rgba(
+                        15,
+                        23,
+                        42,
+                        0.95
+                    )
+                );
+
+            border:
+                1px solid
+                rgba(
+                    148,
+                    163,
+                    184,
+                    0.12
+                );
+
+            border-radius: 20px;
+
+            padding: 25px;
+
+            transition:
+                transform 0.25s ease,
+                box-shadow 0.25s ease,
+                border-color 0.25s ease;
+
+            box-shadow:
+                0 10px 30px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.25
+                );
+        }
+
+
+        .card:hover {
+
+            transform:
+                translateY(-5px);
+
+            border-color:
+                rgba(
+                    96,
+                    165,
+                    250,
+                    0.4
+                );
+
+            box-shadow:
+                0 15px 35px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.4
+                );
+        }
+
+
+        /* CARD HEADER */
+
+        .card-header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            margin-bottom: 25px;
+        }
+
+
+        .relay-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+        }
+
+
+        .relay-icon {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            width: 45px;
+
+            height: 45px;
+
+            border-radius: 12px;
+
+            background: #1e293b;
+
+            font-size: 20px;
+        }
+
+
+        .card h3 {
+
+            margin: 0;
+
+            font-size: 20px;
+
+            font-weight: 600;
+        }
+
+
+        .relay-number {
+
+            font-size: 12px;
+
+            color: #64748b;
+        }
+
+
+        /* STATUS */
+
+        .relay-status {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content:
+                space-between;
+
+            background: #020617;
+
+            border-radius: 12px;
+
+            padding: 14px 16px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .status-label {
+
+            color: #94a3b8;
+
+            font-size: 13px;
+        }
+
+
+        .relay-state {
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            color: #ef4444;
+        }
+
+
+        .relay-state.on {
+
+            color: #22c55e;
+        }
+
+
+        /* BUTTON */
+
+        .buttons {
+
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 10px;
+        }
+
+
+        .btn {
+
+            border: none;
+
+            padding: 13px;
+
+            border-radius: 12px;
+
+            cursor: pointer;
+
+            font-size: 14px;
+
+            font-weight: 700;
+
+            transition:
+                transform 0.2s ease,
+                opacity 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+
+        .btn:hover {
+
+            transform:
+                translateY(-2px);
+
+            opacity: 0.9;
+        }
+
+
+        .btn:active {
+
+            transform:
+                scale(0.97);
+        }
+
+
+        .btn-on {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #22c55e,
+                    #16a34a
+                );
+
+            color: white;
+
+            box-shadow:
+                0 5px 15px
+                rgba(
+                    34,
+                    197,
+                    94,
+                    0.25
+                );
+        }
+
+
+        .btn-off {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #ef4444,
+                    #dc2626
+                );
+
+            color: white;
+
+            box-shadow:
+                0 5px 15px
+                rgba(
+                    239,
+                    68,
+                    68,
+                    0.2
+                );
+        }
+
+
+        /* FOOTER */
+
+        .footer {
+
+            text-align: center;
+
+            margin-top: 30px;
+
+            color: #64748b;
+
+            font-size: 12px;
+        }
+
+
+        /* RESPONSIVE */
+
+        @media (max-width: 700px) {
+
+            .header {
+
+                flex-direction: column;
+
+                align-items:
+                    flex-start;
+
+                gap: 20px;
+            }
+
+
+            .connection {
+
+                width: 100%;
+            }
+
+
+            .container {
+
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .header-left h1 {
+
+                font-size: 25px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="dashboard">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <div class="header-left">
+
+            <h1>
+                IoT Relay Dashboard
+            </h1>
+
+            <p>
+                Kontrol 4 channel relay
+                menggunakan MQTT & HiveMQ
+            </p>
+
+        </div>
+
+
+        <div class="connection">
+
+            <div
+                id="status-dot"
+                class="status-dot">
+            </div>
+
+            <span id="status-koneksi">
+                Menghubungkan...
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- RELAY -->
+
+    <div class="container">
+
+
+        <!-- RELAY 1 -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <div class="relay-title">
+
+                    <div class="relay-icon">
+                        ⚡
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Relay 1
+                        </h3>
+
+                        <div class="relay-number">
+                            Channel 01
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="relay-status">
+
+                <span class="status-label">
+                    Status perangkat
+                </span>
+
+                <span
+                    id="state1"
+                    class="relay-state">
+
+                    OFF
+
+                </span>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="btn btn-on"
+                    onclick="kirimPerintah(1, 'ON')">
+
+                    NYALAKAN
+
+                </button>
+
+
+                <button
+                    class="btn btn-off"
+                    onclick="kirimPerintah(1, 'OFF')">
+
+                    MATIKAN
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- RELAY 2 -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <div class="relay-title">
+
+                    <div class="relay-icon">
+                        🔌
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Relay 2
+                        </h3>
+
+                        <div class="relay-number">
+                            Channel 02
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="relay-status">
+
+                <span class="status-label">
+                    Status perangkat
+                </span>
+
+                <span
+                    id="state2"
+                    class="relay-state">
+
+                    OFF
+
+                </span>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="btn btn-on"
+                    onclick="kirimPerintah(2, 'ON')">
+
+                    NYALAKAN
+
+                </button>
+
+
+                <button
+                    class="btn btn-off"
+                    onclick="kirimPerintah(2, 'OFF')">
+
+                    MATIKAN
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- RELAY 3 -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <div class="relay-title">
+
+                    <div class="relay-icon">
+                        💡
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Relay 3
+                        </h3>
+
+                        <div class="relay-number">
+                            Channel 03
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="relay-status">
+
+                <span class="status-label">
+                    Status perangkat
+                </span>
+
+                <span
+                    id="state3"
+                    class="relay-state">
+
+                    OFF
+
+                </span>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="btn btn-on"
+                    onclick="kirimPerintah(3, 'ON')">
+
+                    NYALAKAN
+
+                </button>
+
+
+                <button
+                    class="btn btn-off"
+                    onclick="kirimPerintah(3, 'OFF')">
+
+                    MATIKAN
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- RELAY 4 -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <div class="relay-title">
+
+                    <div class="relay-icon">
+                        🏠
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Relay 4
+                        </h3>
+
+                        <div class="relay-number">
+                            Channel 04
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="relay-status">
+
+                <span class="status-label">
+                    Status perangkat
+                </span>
+
+                <span
+                    id="state4"
+                    class="relay-state">
+
+                    OFF
+
+                </span>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="btn btn-on"
+                    onclick="kirimPerintah(4, 'ON')">
+
+                    NYALAKAN
+
+                </button>
+
+
+                <button
+                    class="btn btn-off"
+                    onclick="kirimPerintah(4, 'OFF')">
+
+                    MATIKAN
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- FOOTER -->
+
+    <div class="footer">
+
+        ESP8266 • MQTT • HiveMQ
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+
+// ==========================================
+// MQTT CONFIGURATION
+// ==========================================
+
+const brokerUrl =
+    'wss://broker.hivemq.com:8884/mqtt';
+
+
+const topicSub =
+    'cirkit/esp8266/relay/status';
+
+
+const topicPub =
+    'cirkit/esp8266/relay/control';
+
+
+// ==========================================
+// MQTT CLIENT
+// ==========================================
+
+const client =
+    mqtt.connect(brokerUrl);
+
+
+const statusDiv =
+    document.getElementById(
+        'status-koneksi'
+    );
+
+
+const statusDot =
+    document.getElementById(
+        'status-dot'
+    );
+
+
+// ==========================================
+// CONNECT
+// ==========================================
+
+client.on(
+    'connect',
+    function () {
+
+        statusDiv.innerText =
+            'Terhubung ke HiveMQ';
+
+        statusDiv.style.color =
+            '#22c55e';
+
+        statusDot.classList.add(
+            'connected'
+        );
+
+
+        // Subscribe status
+        client.subscribe(
+            topicSub,
+            function (error) {
+
+                if (error) {
+
+                    console.error(
+                        'Subscribe gagal:',
+                        error
+                    );
+
+                    return;
+                }
+
+
+                console.log(
+                    'Berhasil subscribe status relay'
+                );
+
+            }
+        );
+
+    }
+);
+
+
+// ==========================================
+// ERROR
+// ==========================================
+
+client.on(
+    'error',
+    function (error) {
+
+        statusDiv.innerText =
+            'Koneksi Gagal';
+
+        statusDiv.style.color =
+            '#ef4444';
+
+        statusDot.classList.remove(
+            'connected'
+        );
+
+        console.log(
+            'MQTT Error:',
+            error
+        );
+
+    }
+);
+
+
+// ==========================================
+// OFFLINE
+// ==========================================
+
+client.on(
+    'offline',
+    function () {
+
+        statusDiv.innerText =
+            'Terputus';
+
+        statusDiv.style.color =
+            '#ef4444';
+
+        statusDot.classList.remove(
+            'connected'
+        );
+
+    }
+);
+
+
+// ==========================================
+// RECEIVE MQTT MESSAGE
+// ==========================================
+
+client.on(
+    'message',
+    function (
+        topic,
+        message
+    ) {
+
+        const pesan =
+            message.toString().trim();
+
+
+        console.log(
+            'Status relay diterima:',
+            pesan
+        );
+
+
+        /*
+            Format:
+
+            1:ON,2:OFF,3:ON,4:OFF
+        */
+
+
+        const relayList =
+            pesan.split(',');
+
+
+        relayList.forEach(
+            function (item) {
+
+                const parts =
+                    item.split(':');
+
+
+                if (
+                    parts.length !== 2
+                ) {
+                    return;
+                }
+
+
+                const relay =
+                    parts[0].trim();
+
+
+                const state =
+                    parts[1].trim();
+
+
+                updateRelayStatus(
+                    relay,
+                    state
+                );
+
+            }
+        );
+
+    }
+);
+
+
+// ==========================================
+// SEND COMMAND
+// ==========================================
+
+function kirimPerintah(
+    relay,
+    aksi
+) {
+
+    if (!client.connected) {
+
+        alert(
+            'Dashboard belum terhubung ke HiveMQ!'
+        );
+
+        return;
+    }
+
+
+    const pesan =
+        `${relay}:${aksi}`;
+
+
+    console.log(
+        'Mengirim:',
+        pesan
+    );
+
+
+    /*
+        PERHATIKAN:
+
+        Kita TIDAK lagi langsung
+        mengubah tampilan dashboard.
+
+        Kita tunggu ESP8266 mengirim
+        status sebenarnya.
+    */
+
+
+    client.publish(
+        topicPub,
+        pesan
+    );
+
+}
+
+
+// ==========================================
+// UPDATE RELAY STATUS
+// ==========================================
+
+function updateRelayStatus(
+    relay,
+    state
+) {
+
+    const element =
+        document.getElementById(
+            `state${relay}`
+        );
+
+
+    if (!element) {
+
+        return;
+    }
+
+
+    if (
+        state === 'ON'
+    ) {
+
+        element.innerText =
+            'ON';
+
+        element.classList.add(
+            'on'
+        );
+
+    }
+
+
+    else {
+
+        element.innerText =
+            'OFF';
+
+        element.classList.remove(
+            'on'
+        );
+
+    }
+
+}
+
+
+</script> 
+
+
+</body>
+
+</html>
